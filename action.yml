@@ -27,6 +27,12 @@ runs:
       run: sudo apt-get install -y xmlstarlet
       shell: bash
 
+    - name: Checkout artifact repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.artifact_repo }}
+        token: ${{ inputs.gh_pat }}
+
     - name: Create package directories
       run: |
         GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
@@ -39,6 +45,7 @@ runs:
         ORIGINAL_FILENAME=$(basename ${{ inputs.artifact_url }})
         EXTENSION="${ORIGINAL_FILENAME##*.}"
         wget -O $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION ${{ inputs.artifact_url }}
+        ls -la
       shell: bash
 
     - name: Generate POM file
@@ -66,12 +73,6 @@ runs:
         echo "GROUPID=$GROUPID" >> $GITHUB_ENV
         echo "ARTIFACTID=$ARTIFACTID" >> $GITHUB_ENV
       shell: bash
-
-    - name: Checkout artifact repo
-      uses: actions/checkout@v4
-      with:
-        repository: ${{ inputs.artifact_repo }}
-        token: ${{ inputs.gh_pat }}
 
     - name: Generate checksums
       run: |
