@@ -102,8 +102,6 @@ runs:
         md5sum "$ARTIFACT_PATH.${{ env.EXTENSION }}" > "$ARTIFACT_PATH.${{ env.EXTENSION }}.md5"
         sha1sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.sha1"
         md5sum "$ARTIFACT_PATH.pom" > "$ARTIFACT_PATH.pom.md5"
-        sha1sum "${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/maven-metadata.xml" > "${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/maven-metadata.xml.sha1"
-        md5sum "${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/maven-metadata.xml" > "${{ env.GROUPID_PATH }}/${{ inputs.artifact_id }}/maven-metadata.xml.md5"
       shell: bash
 
     - name: Commit and push files
