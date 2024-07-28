@@ -52,6 +52,7 @@ runs:
       run: |
         # Generate maven-metadata.xml
         TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         cat <<EOF > "$GROUPID_PATH/${{ inputs.artifact_id }}/maven-metadata.xml"
         <metadata>
           <groupId>${{ inputs.group_id }}</groupId>
