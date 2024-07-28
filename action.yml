@@ -66,6 +66,7 @@ runs:
           </versioning>
         </metadata>
         EOF
+      shell: bash
 
     - name: Generate POM file
       run: |
