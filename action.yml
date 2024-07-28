@@ -48,6 +48,25 @@ runs:
         ls -la
       shell: bash
 
+    - name: Generate Metadata
+      run: |
+        # Generate maven-metadata.xml
+        TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+        cat <<EOF > "$GROUPID_PATH/${{ inputs.artifact_id }}/maven-metadata.xml"
+        <metadata>
+          <groupId>${{ inputs.group_id }}</groupId>
+          <artifactId>${{ inputs.artifact_id }}</artifactId>
+          <versioning>
+            <latest>${{ inputs.version }}</latest>
+            <release>${{ inputs.version }}</release>
+            <versions>
+              <version>${{ inputs.version }}</version>
+            </versions>
+            <lastUpdated>${TIMESTAMP}</lastUpdated>
+          </versioning>
+        </metadata>
+        EOF
+
     - name: Generate POM file
       run: |
         GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
