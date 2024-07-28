@@ -78,10 +78,15 @@ runs:
       run: |
         GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         ARTIFACT_PATH=$(find $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }} -type f -name "${{ inputs.artifact_id }}-*")
-        sha1sum $ARTIFACT_PATH > $ARTIFACT_PATH.sha1
-        md5sum $ARTIFACT_PATH > $ARTIFACT_PATH.md5
-        sha1sum $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.sha1
-        md5sum $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.md5
+        # Extract the extension of the file from the URL
+        ORIGINAL_FILENAME=$(basename "${{ inputs.artifact_url }}")
+        EXTENSION="${ORIGINAL_FILENAME##*.}"
+        # Generate checksums for the artifact and POM
+        sha1sum "$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION" > "$GITHUB_WORKSPACE/$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION.sha1"
+        md5sum "$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION" > "$GITHUB_WORKSPACE/$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION.md5"
+        sha1sum "$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom" > "$GITHUB_WORKSPACE/$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.sha1"
+        md5sum "$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom" > "$GITHUB_WORKSPACE/$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.md5"
+
       shell: bash
 
     - name: Commit and push files
