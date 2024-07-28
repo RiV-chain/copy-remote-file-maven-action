@@ -1,0 +1,99 @@
+name: "Copy remote file and publish to maven repo"
+description: "This GitHub Action copies a file using a remote URL and publishes it to a Maven repository"
+inputs:
+  artifact_repo:
+    description: "GitHub repository to publish artifacts"
+    required: true
+  gh_pat:
+    description: "Personal Access Token for GitHub Maven artifact repository"
+    required: true
+  artifact_url:
+    description: "Remote file URL to download from"
+    required: true
+  artifact_id:
+    description: "Artifact ID"
+    required: true
+  group_id:
+    description: "Group ID"
+    required: true
+  version:
+    description: "Version"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install xmlstarlet
+      run: sudo apt-get install -y xmlstarlet
+      shell: bash
+
+    - name: Create package directories
+      run: |
+        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        mkdir -p $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}
+      shell: bash
+
+    - name: Download artifact
+      run: |
+        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        ORIGINAL_FILENAME=$(basename ${{ inputs.artifact_url }})
+        EXTENSION="${ORIGINAL_FILENAME##*.}"
+        wget -O $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION ${{ inputs.artifact_url }}
+      shell: bash
+
+    - name: Generate POM file
+      run: |
+        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        cat <<EOF > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom
+        <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>${{ inputs.group_id }}</groupId>
+          <artifactId>${{ inputs.artifact_id }}</artifactId>
+          <version>${{ inputs.version }}</version>
+        </project>
+        EOF
+      shell: bash
+
+    - name: Extract artifactId, groupId, version from generated POM file
+      run: |
+        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        xml_file=$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom
+        VERSION=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:version" "$xml_file")
+        GROUPID=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:groupId" "$xml_file" | sed 's/\./\//g')
+        ARTIFACTID=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:artifactId" "$xml_file")
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "GROUPID=$GROUPID" >> $GITHUB_ENV
+        echo "ARTIFACTID=$ARTIFACTID" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Checkout artifact repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ inputs.artifact_repo }}
+        token: ${{ inputs.gh_pat }}
+
+    - name: Generate checksums
+      run: |
+        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        ARTIFACT_PATH=$(find $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }} -type f -name "${{ inputs.artifact_id }}-*")
+        sha1sum $ARTIFACT_PATH > $ARTIFACT_PATH.sha1
+        md5sum $ARTIFACT_PATH > $ARTIFACT_PATH.md5
+        sha1sum $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.sha1
+        md5sum $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom.md5
+      shell: bash
+
+    - name: Commit and push files
+      run: |
+        git config user.name "${{ github.actor }}"
+        git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+        git add .
+        git commit -m "Added artifacts for ${{ env.ARTIFACTID }} version ${{ env.VERSION }}"
+      shell: bash
+
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ inputs.gh_pat }}
+        repository: ${{ inputs.artifact_repo }}
+        force_with_lease: true
