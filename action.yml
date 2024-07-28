@@ -29,13 +29,13 @@ runs:
 
     - name: Create package directories
       run: |
-        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         mkdir -p $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}
       shell: bash
 
     - name: Download artifact
       run: |
-        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         ORIGINAL_FILENAME=$(basename ${{ inputs.artifact_url }})
         EXTENSION="${ORIGINAL_FILENAME##*.}"
         wget -O $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.$EXTENSION ${{ inputs.artifact_url }}
@@ -43,7 +43,7 @@ runs:
 
     - name: Generate POM file
       run: |
-        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         cat <<EOF > $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom
         <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -57,7 +57,7 @@ runs:
 
     - name: Extract artifactId, groupId, version from generated POM file
       run: |
-        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         xml_file=$GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }}/${{ inputs.artifact_id }}-${{ inputs.version }}.pom
         VERSION=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:version" "$xml_file")
         GROUPID=$(xmlstarlet sel -N xmlns="http://maven.apache.org/POM/4.0.0" -t -v "//xmlns:project/xmlns:groupId" "$xml_file" | sed 's/\./\//g')
@@ -75,7 +75,7 @@ runs:
 
     - name: Generate checksums
       run: |
-        GROUPID_PATH=${{ inputs.group_id //./\/ }}
+        GROUPID_PATH=$(echo "${{ inputs.group_id }}" | tr '.' '/')
         ARTIFACT_PATH=$(find $GROUPID_PATH/${{ inputs.artifact_id }}/${{ inputs.version }} -type f -name "${{ inputs.artifact_id }}-*")
         sha1sum $ARTIFACT_PATH > $ARTIFACT_PATH.sha1
         md5sum $ARTIFACT_PATH > $ARTIFACT_PATH.md5
